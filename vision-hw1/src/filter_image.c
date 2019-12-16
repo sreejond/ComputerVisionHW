@@ -249,25 +249,105 @@ image sub_image(image a, image b)
 
 image make_gx_filter()
 {
-    // TODO
-    return make_image(1,1,1);
+    int numOfChanel = 1;
+    image gxFilter = make_image(3, 3, numOfChanel);
+
+    for (int chanel = 0; chanel < numOfChanel; chanel++)
+    {
+        set_pixel(gxFilter, 0, 0, chanel, -1.0);
+        set_pixel(gxFilter, 1, 0, chanel, 0.0);
+        set_pixel(gxFilter, 2, 0, chanel, 1.0);
+
+        set_pixel(gxFilter, 0, 1, chanel, -2.0);
+        set_pixel(gxFilter, 1, 1, chanel, 0.0);
+        set_pixel(gxFilter, 2, 1, chanel, 2.0);
+
+        set_pixel(gxFilter, 0, 2, chanel, -1.0);
+        set_pixel(gxFilter, 1, 2, chanel, 0.0);
+        set_pixel(gxFilter, 2, 2, chanel, 1.0);
+    }
+
+    return gxFilter;
 }
 
 image make_gy_filter()
 {
-    // TODO
-    return make_image(1,1,1);
+    int numOfChanel = 1;
+    image gyFilter = make_image(3, 3, numOfChanel);
+
+    for (int chanel = 0; chanel < numOfChanel; chanel++)
+    {
+        set_pixel(gyFilter, 0, 0, chanel, -1.0);
+        set_pixel(gyFilter, 1, 0, chanel, -2.0);
+        set_pixel(gyFilter, 2, 0, chanel, -1.0);
+
+        set_pixel(gyFilter, 0, 1, chanel, 0.0);
+        set_pixel(gyFilter, 1, 1, chanel, 0.0);
+        set_pixel(gyFilter, 2, 1, chanel, 0.0);
+
+        set_pixel(gyFilter, 0, 2, chanel, 1.0);
+        set_pixel(gyFilter, 1, 2, chanel, 2.0);
+        set_pixel(gyFilter, 2, 2, chanel, 1.0);
+    }
+
+    return gyFilter;
 }
 
 void feature_normalize(image im)
 {
-    // TODO
+    int maxIndex = im.w * im.h * im.c;
+    float min = 1.0;
+    float max = 0.0;
+
+    for (int i = 0; i < maxIndex; i++)
+    {
+        if (im.data[i] > max)   max = im.data[i];
+        if (im.data[i] < min)   min = im.data[i];
+    }
+
+    float spread = max - min;
+
+    if (spread == 0.0)
+    {
+        for (int i = 0; i < maxIndex; i++)
+            im.data[i] = 0.0;
+    }
+    else
+    {
+        for (int i = 0; i < maxIndex; i++)
+        {
+            float newValue = (im.data[i] - min) / spread;
+            im.data[i] = newValue;
+        }
+    }
 }
 
 image *sobel_image(image im)
 {
-    // TODO
-    return calloc(2, sizeof(image));
+    image* images = calloc(2, sizeof(image));
+
+    images[0] = make_image(im.w, im.h, 1);
+    images[1] = make_image(im.w, im.h, 1);
+
+    image dx = make_gx_filter();
+    image dy = make_gy_filter();
+
+    image gx = convolve_image(im, dx, 0);
+    image gy = convolve_image(im, dy, 0);
+
+    free_image(dx);
+    free_image(dy);
+
+    for (int i = 0; i < im.w * im.h; i++)
+    {
+        images[0].data[i] = sqrtf(pow(gx.data[i], 2) + pow(gy.data[i], 2));
+        images[1].data[i] = atan2(gy.data[i], gx.data[i]);
+    }
+
+    free_image(gx);
+    free_image(gy);
+
+    return images;
 }
 
 image colorize_sobel(image im)
