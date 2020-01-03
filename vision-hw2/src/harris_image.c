@@ -237,7 +237,7 @@ descriptor *harris_corner_detector(image im, float sigma, float thresh, int nms,
                 {
                     count <<= 1;
                     int* new_arr = (int*) malloc(capacity * sizeof(int));
-                    mem_copy(new_arr, arr, (count >> 1) * sizeof(int));
+                    memcpy(new_arr, arr, (count >> 1) * sizeof(int));
                     free(arr);
                     arr = new_arr;
                 }
