@@ -185,10 +185,16 @@ match *match_descriptors(descriptor *a, int an, descriptor *b, int bn, int *mn)
 point project_point(matrix H, point p)
 {
     matrix c = make_matrix(3, 1);
-    // TODO: project point p with homography H.
-    // Remember that homogeneous coordinates are equivalent up to scalar.
-    // Have to divide by.... something...
-    point q = make_point(0, 0);
+    c.data[0][0] = p.x;
+    c.data[1][0] = p.y;
+    c.data[2][0] = 1;
+
+    matrix n = matrix_mult_matrix(H, c);
+    point q = make_point(n.data[0][0] / n.data[2][0], n.data[1][0] / n.data[2][0]); // normalization
+
+    free_matrix(c);
+    free_matrix(n);
+
     return q;
 }
 
@@ -197,8 +203,7 @@ point project_point(matrix H, point p)
 // returns: L2 distance between them.
 float point_distance(point p, point q)
 {
-    // TODO: should be a quick one.
-    return 0;
+    return sqtrf((p.x - q.x) * (p.x - q.x) + (p.y - q.y) * (p.y - q.y));
 }
 
 // Count number of inliers in a set of matches. Should also bring inliers
@@ -212,11 +217,21 @@ float point_distance(point p, point q)
 //          so that the inliers are first in the array. For drawing.
 int model_inliers(matrix H, match *m, int n, float thresh)
 {
-    int i;
+    int i = n;
     int count = 0;
-    // TODO: count number of matches that are inliers
-    // i.e. distance(H*p, q) < thresh
-    // Also, sort the matches m so the inliers are the first 'count' elements.
+    
+    while (count < i)
+    {
+        if (point_distance(project_point(H, m[count].p), m[count].q) < thresh)
+            count++;
+        else
+        {
+            match tmp = m[--i];
+            m[i] = m[count];
+            m[count] = tmp;
+        }
+    }
+
     return count;
 }
 
@@ -225,7 +240,18 @@ int model_inliers(matrix H, match *m, int n, float thresh)
 // int n: number of elements in matches.
 void randomize_matches(match *m, int n)
 {
-    // TODO: implement Fisher-Yates to shuffle the array.
+    // Use a different seed value so that we don't get same 
+    // result each time we run this program 
+    srand(time(NULL)); 
+  
+    // Start from the last element and swap one by one. We don't 
+    // need to run for the first element that's why i > 0 
+    for (int i = n-1; i > 0; i--) 
+    { 
+        // Pick a random index from 0 to i 
+        int j = rand() % (i+1); 
+        swap(m[i], m[j]); 
+    } 
 }
 
 // Computes homography between two images given matching pixels.
@@ -243,8 +269,14 @@ matrix compute_homography(match *matches, int n)
         double xp = matches[i].q.x;
         double y  = matches[i].p.y;
         double yp = matches[i].q.y;
-        // TODO: fill in the matrices M and b.
 
+        double arr1[8] = {x, y, 1, 0, 0, 0, -x * xp, -y * xp};
+        double arr1[8] = {0, 0, 0, x, y, 1, -x * yp, -y * yp};
+        memcpy(M.data[i * 2], arr1, sizeof(arr1));
+        memcpy(M.data[i * 2 + 1], arr2, sizeof(arr2));
+
+        b.data[i * 2][0] = xp;
+        b.data[i * 2 + 1][0] = yp;
     }
     matrix a = solve_system(M, b);
     free_matrix(M); free_matrix(b); 
@@ -254,8 +286,12 @@ matrix compute_homography(match *matches, int n)
     if(!a.data) return none;
 
     matrix H = make_matrix(3, 3);
-    // TODO: fill in the homography H based on the result in a.
-
+    assert(a.cols == 1 && a.rows == 8);
+    for (int i = 0; i < 8; i++)
+    {
+        H.data[i / 3][i % 3] = a.data[i][0];
+    }
+    H.data[2][2] = 1;
 
     free_matrix(a);
     return H;
@@ -272,17 +308,25 @@ matrix RANSAC(match *m, int n, float thresh, int k, int cutoff)
 {
     int e;
     int best = 0;
+    int fit_num = 4;
     matrix Hb = make_translation_homography(256, 0);
-    // TODO: fill in RANSAC algorithm.
-    // for k iterations:
-    //     shuffle the matches
-    //     compute a homography with a few matches (how many??)
-    //     if new homography is better than old (how can you tell?):
-    //         compute updated homography using all inliers
-    //         remember it and how good it is
-    //         if it's better than the cutoff:
-    //             return it immediately
-    // if we get to the end return the best homography
+
+    for (int i = 0; i < k; i++)
+    {
+        randomize_matches(m, n);
+        matrix H = compute_homography(m, fit_num);
+        int inlilners = model_inliers(H, m, n, thresh);
+        if (inlilners > best)
+        {
+            free_matrix(Hb);
+            Hb = compute_homography(m, inlilners);
+            best = inlilners;
+            if (best > cutoff)
+                return Hb;
+        }
+        free_matrix(H);
+    }
+    
     return Hb;
 }
 
