@@ -85,16 +85,16 @@ image convolve_image(image im, image filter, int preserve)
 
                 if (numOfChanel > 1)
                 {
-                    sum = (sum > 1.0) ? 1.0 : sum;
-                    sum = (sum < 0.0) ? 0.0 : sum;
+                    //sum = (sum > 1.0) ? 1.0 : sum;
+                    //sum = (sum < 0.0) ? 0.0 : sum;
                     set_pixel(convolve, col, row, chanel, sum);
                 }
             }
 
             if (numOfChanel == 1)
             {
-                sum = (sum > 1.0) ? 1.0 : sum;
-                sum = (sum < 0.0) ? 0.0 : sum;
+                //sum = (sum > 1.0) ? 1.0 : sum;
+                //sum = (sum < 0.0) ? 0.0 : sum;
                 set_pixel(convolve, col, row, 0, sum);
             }
         }

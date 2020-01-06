@@ -158,9 +158,9 @@ image cornerness_response(image S)
             float xx = get_pixel(S, col, row, 0);
             float yy = get_pixel(S, col, row, 1);
             float xy = get_pixel(S, col, row, 2);
-            float det = xx * yy - xy * xy;
+            float det = (xx * yy) - (xy * xy);
             float trace = xx + yy;
-            set_pixel(R, col, row, 0, det - alpha * trace * trace);
+            set_pixel(R, col, row, 0, det - (alpha * trace * trace));
         }
     }
 
@@ -190,13 +190,13 @@ image nms_image(image im, int w)
                     if (get_pixel(im, col - center + i, row - center + j, 0) > pixel)
                     {
                         set_pixel(r, col, row, 0, -999999);
-                        goto suppressed;
+                        //goto suppressed;
                     }
                 }
             }
 
-            suppressed:
-                ;
+            //suppressed:
+              //  ;
         }
     }
 
@@ -235,9 +235,9 @@ descriptor *harris_corner_detector(image im, float sigma, float thresh, int nms,
                 count++;
                 if (count > capacity)
                 {
-                    count <<= 1;
+                    capacity <<= 1;
                     int* new_arr = (int*) malloc(capacity * sizeof(int));
-                    memcpy(new_arr, arr, (count >> 1) * sizeof(int));
+                    memcpy(new_arr, arr, (capacity >> 1) * sizeof(int));
                     free(arr);
                     arr = new_arr;
                 }
@@ -272,5 +272,6 @@ void detect_and_draw_corners(image im, float sigma, float thresh, int nms)
 {
     int n = 0;
     descriptor *d = harris_corner_detector(im, sigma, thresh, nms, &n);
+    printf("number of descriptors: %d\n", n);
     mark_corners(im, d, n);
 }

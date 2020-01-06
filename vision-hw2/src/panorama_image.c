@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 #include <assert.h>
 #include "image.h"
 #include "matrix.h"
@@ -203,7 +204,7 @@ point project_point(matrix H, point p)
 // returns: L2 distance between them.
 float point_distance(point p, point q)
 {
-    return sqtrf((p.x - q.x) * (p.x - q.x) + (p.y - q.y) * (p.y - q.y));
+    return sqrtf((p.x - q.x) * (p.x - q.x) + (p.y - q.y) * (p.y - q.y));
 }
 
 // Count number of inliers in a set of matches. Should also bring inliers
@@ -250,7 +251,9 @@ void randomize_matches(match *m, int n)
     { 
         // Pick a random index from 0 to i 
         int j = rand() % (i+1); 
-        swap(m[i], m[j]); 
+        match tmp = m[i];
+        m[i] = m[j];
+        m[j] = tmp;
     } 
 }
 
@@ -271,7 +274,7 @@ matrix compute_homography(match *matches, int n)
         double yp = matches[i].q.y;
 
         double arr1[8] = {x, y, 1, 0, 0, 0, -x * xp, -y * xp};
-        double arr1[8] = {0, 0, 0, x, y, 1, -x * yp, -y * yp};
+        double arr2[8] = {0, 0, 0, x, y, 1, -x * yp, -y * yp};
         memcpy(M.data[i * 2], arr1, sizeof(arr1));
         memcpy(M.data[i * 2 + 1], arr2, sizeof(arr2));
 
@@ -371,16 +374,25 @@ image combine_images(image a, image b, matrix H)
     for(k = 0; k < a.c; ++k){
         for(j = 0; j < a.h; ++j){
             for(i = 0; i < a.w; ++i){
-                // TODO: fill in.
+                set_pixel(c, i - dx, j - dy, k, get_pixel(a, i, j, k));
             }
         }
     }
 
-    // TODO: Paste in image b as well.
-    // You should loop over some points in the new image (which? all?)
-    // and see if their projection from a coordinates to b coordinates falls
-    // inside of the bounds of image b. If so, use bilinear interpolation to
-    // estimate the value of b at that projection, then fill in image c.
+    for (k = 0; k < a.c; k++)
+    {
+        for (j = topleft.y; j < botright.y; j++)
+        {
+            for (i = topleft.x; i < botright.x; i++)
+            {
+                point p = project_point(H, make_point(i, j));
+                if (p.x >= 0 && p.x < b.w && p.y >= 0 && p.y < b.h)
+                {
+                    set_pixel(c, i - dx, j - dy, k, bilinear_interpolate(b, p.x, p.y, k));
+                }
+            }
+        }
+    }
 
     return c;
 }

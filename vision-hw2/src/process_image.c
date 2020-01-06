@@ -4,29 +4,17 @@
 #include <math.h>
 #include "image.h"
 
-static void clampPaddingRow(image im, int* y)
+static void clamp(int *a, int min, int max) 
 {
-    if (*y >= im.h)  *y = im.h - 1;
-    else if (*y < 0) *y = 0;
-}
-
-static void clampPaddingCol(image im, int* x)
-{
-    if (*x >= im.w)  *x = im.w - 1;
-    else if (*x < 0) *x = 0;
-}
-
-static void clampPaddingChanel(image im, int* c)
-{
-    if (*c >= im.c)  *c = im.c - 1;
-    else if (*c < 0) *c = 0;
+    *a = *a < min ? min : *a;
+    *a = *a > max ? max : *a;
 }
 
 float get_pixel(image im, int x, int y, int c)
 {
-    clampPaddingRow(im, &y);
-    clampPaddingCol(im, &x);
-    clampPaddingChanel(im, &c);
+    clamp(&x, 0, im.w - 1);
+    clamp(&y, 0, im.h - 1);
+    clamp(&c, 0, im.c - 1);
 
     int index = c * im.w * im.h + y * im.w + x;
     return im.data[index];
@@ -43,18 +31,7 @@ void set_pixel(image im, int x, int y, int c, float v)
 image copy_image(image im)
 {
     image copy = make_image(im.w, im.h, im.c);
-
-    int row, col, chanel;
-    for (chanel = 0; chanel < im.c; chanel++)
-    {
-        for (row = 0; row < im.h; row++)
-        {
-            for (col = 0; col < im.w; col++)
-            {
-                set_pixel(copy, col, row, chanel, get_pixel(im, col, row, chanel));
-            }
-        }
-    }
+    memcpy(copy.data, im.data, im.w * im.h * im.c * sizeof(float));
     return copy;
 }
 
