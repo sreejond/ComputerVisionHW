@@ -47,7 +47,29 @@ void draw_line(image im, float x, float y, float dx, float dy)
 image make_integral_image(image im)
 {
     image integ = make_image(im.w, im.h, im.c);
-    // TODO: fill in the integral image
+    float first = 0.0;
+    float second = 0.0;
+    float third = 0.0;
+    float fourth = 0.0;
+
+    for (int i = 0; i < im.w; i++)
+    {
+        for (int j = 0; j < im.h; j++)
+        {
+            for (int k = 0; k < im.c; k++)
+            {
+                first = get_pixel(im, i, j, k);
+                if (i > 0)
+                    second = get_pixel(integ, i - 1, j, k);
+                if (j > 0)
+                    third = get_pixel(integ, i, j - 1, k);
+                if (i > 0 && j > 0)
+                    fourth = get_pixel(integ, i - 1, j - 1, k);
+                set_pixel(integ, i, j, k, first + second + third - fourth);
+            }
+        }
+    }
+
     return integ;
 }
 
@@ -57,10 +79,32 @@ image make_integral_image(image im)
 // returns: smoothed image
 image box_filter_image(image im, int s)
 {
+    assert(s % 2 == 1);
+
     int i,j,k;
     image integ = make_integral_image(im);
     image S = make_image(im.w, im.h, im.c);
-    // TODO: fill in S using the integral image.
+
+    int center = s / 2;
+
+    for (int i = 0; i < im.w; i++)
+    {
+        for (int j = 0; j < im.h; j++)
+        {
+            for (int k = 0; k < im.c; k++)
+            {
+                int x1 = (i - center) > 0 ? i - center : 0;
+                int y1 = (j - center) > 0 ? j - center : 0;
+                int x2 = (i + center) < im.w ? i - center : im.w - 1;
+                int y2 = (j + center) < im.h ? j - center : im.h - 1;
+                float sum_of_pixels = get_pixel(integ, x1, y1, k) + get_pixel(integ, x2, y2, k)
+                    - get_pixel(integ, x2, y1, k) - get_pixel(integ, x1, y2, k);
+                float avg_pixel = sum_of_pixels / ((x2 - x1) * (y2 - y1));
+                set_pixel(S, i, j, k, avg_pixel);
+            }
+        }
+    }
+
     return S;
 }
 
